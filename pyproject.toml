@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "ai-42-vienna"
+version = "0.1.0"
+description = ""
+authors = ["David Schaupp <ds@umdaschgroup-ventures.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11.5"
+ultralytics = "^8.0.203"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+pose = "ai_42_vienna.vision.pose_estimation:main"
+depth = "ai_42_vienna.vision.depth_estimation:main"
+object = "ai_42_vienna.vision.object_detection:main"
