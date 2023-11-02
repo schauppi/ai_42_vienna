@@ -7,46 +7,97 @@ class FrameStreamer:
         self.model = model
 
     def read(self):
+        """
+        Reads a frame from the video source.
+
+        Args:
+            None
+
+        Returns:
+            ret (bool): True if frame is read correctly, False otherwise.
+            frame (ndarray): Frame read from the video source.
+        """
         ret, frame = self.cap.read()
         return ret, frame
 
     def object_detection(self, frame):
+        """
+        Performs object detection on the frame.
+
+        Args:
+            frame (ndarray): Frame read from the video source.
+
+        Returns:
+            frame (ndarray): Frame with bounding boxes drawn around detected objects.
+        """
+        # Run object detection on the frame using the provided model
         results = self.model(frame)
+
+        # Initialize people count to 0
         people_count = 0
-        for result in results:                                         
+
+        # Loop through each result from the object detection
+        for result in results:
+            # Get the bounding boxes and class names for each detected object
             boxes = result.boxes.cpu().numpy()
             class_names = result.boxes.cls
 
-            for i, box in enumerate(boxes):                             
+            # Loop through each bounding box and class name
+            for i, box in enumerate(boxes):
                 label = class_names[i]
-                if label != 0:                               
-                    continue
-                people_count += 1
-                r = box.xyxy[0].astype(int)                           
-                cv2.rectangle(frame, r[:2], r[2:], (255, 255, 255), 2)  
 
+                # If the detected object is not a person, skip to the next bounding box
+                if label != 0:
+                    continue
+
+                # Increment the people count and draw a bounding box around the detected person
+                people_count += 1
+                r = box.xyxy[0].astype(int)
+                cv2.rectangle(frame, r[:2], r[2:], (255, 255, 255), 2)
+
+        # Add the people count to the frame as text
         cv2.putText(frame, f"People Count: {people_count}", (10, 30), self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+
+        # Return the frame with bounding boxes drawn around detected objects
         return frame
     
-    def pose_estimation(self, frame):
 
+    def pose_estimation(self, frame):
+        """
+        Performs pose estimation on the frame.
+
+        Args:
+            frame (ndarray): Frame read from the video source.
+
+        Returns:
+            frame (ndarray): Frame with skeleton drawn around detected people.
+        """
+
+        # Initialize people count
         people_count = 0
 
+        # Define skeleton
         skeleton = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13], [6, 7], [6, 8], [7, 9],
-                         [8, 10], [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]
-        
+                    [8, 10], [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]
+
+        # Perform pose estimation on the frame
         results = self.model(frame)
 
+        # Loop through the results
         for result in results:
+            # Get the keypoints
             kpts = result.keypoints.cpu().numpy()
             kpts = kpts.xy[0].astype(int)
             nkpt, ndim = kpts.shape
 
+            # If there are no keypoints, continue
             if nkpt == 0:
                 continue
             else:
+                # Increment people count
                 people_count += 1
 
+                # Loop through the keypoints
                 for i, k in enumerate(kpts):
                     x_coord, y_coord = k[0], k[1]
                     if x_coord % frame.shape[1] != 0 and y_coord % frame.shape[0] != 0:
@@ -55,8 +106,9 @@ class FrameStreamer:
                             if conf < 0.5:
                                 continue
                         cv2.circle(frame, (int(x_coord), int(y_coord)), 5, (255,255,255), -1, lineType=cv2.LINE_AA)
-                    
+
                     ndim = kpts.shape[-1]
+                    # Loop through the skeleton
                     for i, sk in enumerate(skeleton):
                         pos1 = (int(kpts[(sk[0] - 1), 0]), int(kpts[(sk[0] - 1), 1]))
                         pos2 = (int(kpts[(sk[1] - 1), 0]), int(kpts[(sk[1] - 1), 1]))
@@ -71,17 +123,48 @@ class FrameStreamer:
                             continue
                         cv2.line(frame, pos1, pos2, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
 
-
+        # Add people count to the frame
         cv2.putText(frame, f"People Count: {people_count}", (10, 30), self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
         return frame
+    
+    def depth_estimation(self, frame):
+        pass
+
 
     def release(self):
+        """
+        Releases the video source.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.cap.release()
 
     @staticmethod
     def show_frame(frame):
+        """
+        Displays the frame.
+
+        Args:
+            frame (ndarray): Frame read from the video source.
+
+        Returns:
+            None
+        """
         cv2.imshow('frame', frame)
 
     @staticmethod
     def destroy_windows():
+        """
+        Destroys all windows.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         cv2.destroyAllWindows()
