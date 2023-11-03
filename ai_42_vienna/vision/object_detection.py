@@ -2,11 +2,19 @@ from ultralytics import YOLO
 import cv2
 from ai_42_vienna.vision.streamer import FrameStreamer
 
-model = YOLO('ai_42_vienna/vision/models/yolov8n.pt')
+
+def instantiate_model():
+
+    yolo = YOLO('ai_42_vienna/vision/models/yolov8n.pt')
+
+    return yolo
+
     
 def main():
 
-    streamer = FrameStreamer(source=0, model=model)
+    yolo = instantiate_model()
+
+    streamer = FrameStreamer(source=0, model=yolo)
     while True:
         ret, frame = streamer.read()
         if not ret:

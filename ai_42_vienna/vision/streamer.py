@@ -2,10 +2,9 @@ import cv2
 import torch
 from dotenv import load_dotenv
 import os
+import numpy as np
 
 load_dotenv()
-
-mps_fallback = os.environ['PYTORCH_ENABLE_MPS_FALLBACK']
 
 class FrameStreamer:
     def __init__(self, source, model):
@@ -135,11 +134,27 @@ class FrameStreamer:
         return frame
     
     def depth_estimation(self, frame, transform):
-        
-        input = transform(frame).to("mps")
+        """
+        Performs depth estimation on the frame.
 
+        Args:
+            frame (ndarray): Frame read from the video source.
+            transform (torchvision.transforms): Transform to apply to the frame.
+
+        Returns:
+            depth_map (ndarray): Frame with depth map.
+        """
+        
+        # Apply transformation to the frame
+        input_data = transform(frame).to("mps")
+
+        # Run model without gradient computation
         with torch.no_grad():
-            prediction = self.model(input)
+            # Get model prediction
+            prediction = self.model(input_data)
+            # Move prediction to CPU
+            prediction = prediction.to("cpu")
+            # Interpolate prediction to match frame shape
             prediction = torch.nn.functional.interpolate(
                 prediction.unsqueeze(1),
                 size=frame.shape[:2],
@@ -147,12 +162,19 @@ class FrameStreamer:
                 align_corners=False,
             ).squeeze()
 
-        depth_map = prediction.cpu().numpy()
+        # Convert prediction tensor to numpy array
+        output = prediction.cpu().numpy()
 
-        depth_map = cv2.normalize(depth_map, None, 0, 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
+        # Normalize output values between 0 and 1
+        depth_map = cv2.normalize(output, None, 0, 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
+        # Scale depth_map values to uint8 range (0-255)
+        depth_map = (depth_map * 255).astype(np.uint8)
+
+        # Apply color mapping to the depth_map
         depth_map = cv2.applyColorMap(depth_map, cv2.COLORMAP_MAGMA)
 
+        # Return final depth_map
         return depth_map
 
 

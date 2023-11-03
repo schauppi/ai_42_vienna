@@ -2,24 +2,31 @@ import torch
 import cv2
 from ai_42_vienna.vision.streamer import FrameStreamer
 
-model_types = ["DPT_Large", 
-               "DPT_Hybrid", 
-               "MiDaS_small"]
+def instantiate_model():
 
-model = model_types[2]
+    model_types = ["DPT_Large", 
+                   "DPT_Hybrid", 
+                   "MiDaS_small"]
 
-midas = torch.hub.load("intel-isl/MiDaS", model)
+    model = model_types[2]
 
-device = torch.device("mps")
-midas.to(device)
+    midas = torch.hub.load("intel-isl/MiDaS", model)
 
-midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
-if model == "DPT_Large" or model == "DPT_Hybrid":
-    transform = midas_transforms.dpt_transform
-else:
-    transform = midas_transforms.small_transform
+    device = torch.device("mps")
+    midas.to(device)
+
+    midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+
+    if model == "DPT_Large" or model == "DPT_Hybrid":
+        transform = midas_transforms.dpt_transform
+    else:
+        transform = midas_transforms.small_transform
+
+    return midas, transform
 
 def main():
+
+    midas, transform = instantiate_model()
 
     streamer = FrameStreamer(source=0, model=midas)
     while True:
@@ -30,7 +37,6 @@ def main():
         streamer.show_frame(processed_frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    
 
 if __name__ == '__main__':
     main()
