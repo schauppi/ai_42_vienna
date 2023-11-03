@@ -1,4 +1,11 @@
 import cv2
+import torch
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+mps_fallback = os.environ['PYTORCH_ENABLE_MPS_FALLBACK']
 
 class FrameStreamer:
     def __init__(self, source, model):
@@ -127,8 +134,26 @@ class FrameStreamer:
         cv2.putText(frame, f"People Count: {people_count}", (10, 30), self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
         return frame
     
-    def depth_estimation(self, frame):
-        pass
+    def depth_estimation(self, frame, transform):
+        
+        input = transform(frame).to("mps")
+
+        with torch.no_grad():
+            prediction = self.model(input)
+            prediction = torch.nn.functional.interpolate(
+                prediction.unsqueeze(1),
+                size=frame.shape[:2],
+                mode="bicubic",
+                align_corners=False,
+            ).squeeze()
+
+        depth_map = prediction.cpu().numpy()
+
+        depth_map = cv2.normalize(depth_map, None, 0, 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
+
+        depth_map = cv2.applyColorMap(depth_map, cv2.COLORMAP_MAGMA)
+
+        return depth_map
 
 
     def release(self):
