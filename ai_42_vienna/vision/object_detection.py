@@ -4,6 +4,15 @@ from ai_42_vienna.vision.streamer import FrameStreamer
 
 
 def instantiate_model():
+    """
+    Instantiate the YOLO model for object detection
+
+    Args:
+        None
+
+    Returns:
+        yolo: YOLO model for object detection
+    """
 
     yolo = YOLO('ai_42_vienna/vision/models/yolov8n.pt')
 
@@ -11,6 +20,15 @@ def instantiate_model():
 
     
 def main():
+    """
+    Main function for object detection 
+
+    Args:
+        None
+
+    Returns:    
+        None
+    """
 
     yolo = instantiate_model()
 

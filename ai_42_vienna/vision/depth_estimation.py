@@ -2,7 +2,19 @@ import torch
 import cv2
 from ai_42_vienna.vision.streamer import FrameStreamer
 
+#https://medium.com/artificialis/getting-started-with-depth-estimation-using-midas-and-python-d0119bfe1159
+
 def instantiate_model():
+    """
+    Instantiate the MiDaS model for depth estimation
+
+    Args:
+        None
+
+    Returns:
+        midas: MiDaS model for depth estimation
+        transform: MiDaS transform
+    """
 
     model_types = ["DPT_Large", 
                    "DPT_Hybrid", 
@@ -25,6 +37,15 @@ def instantiate_model():
     return midas, transform
 
 def main():
+    """
+    Main function for depth estimation
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
 
     midas, transform = instantiate_model()
 

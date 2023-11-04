@@ -1,10 +1,7 @@
 import cv2
 import torch
-from dotenv import load_dotenv
 import os
 import numpy as np
-
-load_dotenv()
 
 class FrameStreamer:
     def __init__(self, source, model):
