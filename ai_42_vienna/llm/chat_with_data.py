@@ -37,11 +37,11 @@ def instantiate():
     handler = StdOutCallbackHandler()
     llm = ChatOpenAI(model_name='gpt-4', verbose=True)
     openai_embeddings = OpenAIEmbeddings()
-    loader = WebBaseLoader()
+    
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, 
                                                        chunk_overlap=40)
     
-    return handler, llm, openai_embeddings, loader, text_splitter
+    return handler, llm, openai_embeddings, text_splitter
 
 
 def main():
@@ -55,7 +55,7 @@ def main():
         None
     """
 
-    handler, llm, openai_embeddings, loader, text_splitter = instantiate()
+    handler, llm, openai_embeddings, text_splitter = instantiate()
 
     st.title("🦜🔗 AI 42 Vienna")
     st.subheader('Input your website URL, ask questions, and receive answers directly from the website.')
@@ -64,13 +64,15 @@ def main():
 
     if st.button("Submit Query", type="primary"):
 
-        data = loader.load(url)
+        loader = WebBaseLoader(url)
+
+        data = loader.load()
         
         docs = text_splitter.split_documents(data)
         
-        vectordb = Chroma.from_documents(documents=docs, 
-                                        embedding=openai_embeddings,
-                                        persist_directory=DB_DIR)
+        #vectordb = Chroma.from_documents(documents=docs, embedding=openai_embeddings, persist_directory=DB_DIR)
+        
+        vectordb = Chroma(persist_directory="ai_42_vienna/llm/db", embedding_function=openai_embeddings)
         
         retriever_from_llm = MultiQueryRetriever.from_llm(retriever=vectordb.as_retriever(), 
                                                           llm=llm)
@@ -89,3 +91,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+#https://www.42vienna.com/
+#how to apply?

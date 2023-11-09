@@ -3,3 +3,4 @@
 *models/
 ai_42_vienna/llm/db
 ai_42_vienna/llm/output
+.env
