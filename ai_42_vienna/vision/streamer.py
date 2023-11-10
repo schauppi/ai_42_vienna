@@ -86,45 +86,61 @@ class FrameStreamer:
         # Perform pose estimation on the frame
         results = self.model(frame)
 
+        """for test_results in results[0].keypoints:
+            for test_result in test_results:
+                kpts = test_result.xy
+                kpts = kpts.cpu().numpy()
+                print(kpts[0].shape)
+                #print(kpts[0])
+        print("---------")
+
         # Loop through the results
-        for result in results:
+        for i, result in enumerate(results):
             # Get the keypoints
-            kpts = result.keypoints.cpu().numpy()
+            kpts = result[i].keypoints.cpu().numpy()
             kpts = kpts.xy[0].astype(int)
-            nkpt, ndim = kpts.shape
+            print(kpts.shape)"""
+        
+        for results in results[0].keypoints:
+            for result in results:
+                kpts = result.xy
+                kpts = kpts.cpu().numpy()
+                kpts = kpts[0]
+            
+                nkpt, ndim = kpts.shape
 
-            # If there are no keypoints, continue
-            if nkpt == 0:
-                continue
-            else:
-                # Increment people count
-                people_count += 1
+                # If there are no keypoints, continue
+                if nkpt == 0:
+                    continue
+                else:
+                    # Increment people count
+                    people_count += 1
 
-                # Loop through the keypoints
-                for i, k in enumerate(kpts):
-                    x_coord, y_coord = k[0], k[1]
-                    if x_coord % frame.shape[1] != 0 and y_coord % frame.shape[0] != 0:
-                        if len(k) == 3:
-                            conf = k[2]
-                            if conf < 0.5:
+                    # Loop through the keypoints
+                    for i, k in enumerate(kpts):
+                        x_coord, y_coord = k[0], k[1]
+                        if x_coord % frame.shape[1] != 0 and y_coord % frame.shape[0] != 0:
+                            if len(k) == 3:
+                                conf = k[2]
+                                if conf < 0.5:
+                                    continue
+                            cv2.circle(frame, (int(x_coord), int(y_coord)), 5, (255,255,255), -1, lineType=cv2.LINE_AA)
+
+                        ndim = kpts.shape[-1]
+                        # Loop through the skeleton
+                        for i, sk in enumerate(skeleton):
+                            pos1 = (int(kpts[(sk[0] - 1), 0]), int(kpts[(sk[0] - 1), 1]))
+                            pos2 = (int(kpts[(sk[1] - 1), 0]), int(kpts[(sk[1] - 1), 1]))
+                            if ndim == 3:
+                                conf1 = kpts[(sk[0] - 1), 2]
+                                conf2 = kpts[(sk[1] - 1), 2]
+                                if conf1 < 0.5 or conf2 < 0.5:
+                                    continue
+                            if pos1[0] % frame.shape[1] == 0 or pos1[1] % frame.shape[0] == 0 or pos1[0] < 0 or pos1[1] < 0:
                                 continue
-                        cv2.circle(frame, (int(x_coord), int(y_coord)), 5, (255,255,255), -1, lineType=cv2.LINE_AA)
-
-                    ndim = kpts.shape[-1]
-                    # Loop through the skeleton
-                    for i, sk in enumerate(skeleton):
-                        pos1 = (int(kpts[(sk[0] - 1), 0]), int(kpts[(sk[0] - 1), 1]))
-                        pos2 = (int(kpts[(sk[1] - 1), 0]), int(kpts[(sk[1] - 1), 1]))
-                        if ndim == 3:
-                            conf1 = kpts[(sk[0] - 1), 2]
-                            conf2 = kpts[(sk[1] - 1), 2]
-                            if conf1 < 0.5 or conf2 < 0.5:
+                            if pos2[0] % frame.shape[1] == 0 or pos2[1] % frame.shape[0] == 0 or pos2[0] < 0 or pos2[1] < 0:
                                 continue
-                        if pos1[0] % frame.shape[1] == 0 or pos1[1] % frame.shape[0] == 0 or pos1[0] < 0 or pos1[1] < 0:
-                            continue
-                        if pos2[0] % frame.shape[1] == 0 or pos2[1] % frame.shape[0] == 0 or pos2[0] < 0 or pos2[1] < 0:
-                            continue
-                        cv2.line(frame, pos1, pos2, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
+                            cv2.line(frame, pos1, pos2, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
 
         # Add people count to the frame
         cv2.putText(frame, f"People Count: {people_count}", (10, 30), self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
