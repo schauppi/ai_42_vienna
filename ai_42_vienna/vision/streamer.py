@@ -85,21 +85,6 @@ class FrameStreamer:
 
         # Perform pose estimation on the frame
         results = self.model(frame)
-
-        """for test_results in results[0].keypoints:
-            for test_result in test_results:
-                kpts = test_result.xy
-                kpts = kpts.cpu().numpy()
-                print(kpts[0].shape)
-                #print(kpts[0])
-        print("---------")
-
-        # Loop through the results
-        for i, result in enumerate(results):
-            # Get the keypoints
-            kpts = result[i].keypoints.cpu().numpy()
-            kpts = kpts.xy[0].astype(int)
-            print(kpts.shape)"""
         
         for results in results[0].keypoints:
             for result in results:
