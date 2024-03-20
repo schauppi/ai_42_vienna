@@ -3,11 +3,14 @@ import torch
 import os
 import numpy as np
 
+
 class FrameStreamer:
-    def __init__(self, source, model):
+    def __init__(self, source, object_detection_model, pose_estimation_model, depth_estimation_model):
         self.cap = cv2.VideoCapture(source)
         self.font = cv2.FONT_HERSHEY_SIMPLEX
-        self.model = model
+        self.object_detection_model = object_detection_model
+        self.pose_estimation_model = pose_estimation_model
+        self.depth_estimation_model = depth_estimation_model
 
     def read(self):
         """
@@ -34,7 +37,7 @@ class FrameStreamer:
             frame (ndarray): Frame with bounding boxes drawn around detected objects.
         """
         # Run object detection on the frame using the provided model
-        results = self.model(frame)
+        results = self.object_detection_model(frame)
 
         # Initialize people count to 0
         people_count = 0
@@ -59,11 +62,11 @@ class FrameStreamer:
                 cv2.rectangle(frame, r[:2], r[2:], (255, 255, 255), 2)
 
         # Add the people count to the frame as text
-        cv2.putText(frame, f"People Count: {people_count}", (10, 30), self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, f"People Count: {people_count}", (10, 30),
+                    self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
 
         # Return the frame with bounding boxes drawn around detected objects
         return frame
-    
 
     def pose_estimation(self, frame):
         """
@@ -84,14 +87,14 @@ class FrameStreamer:
                     [8, 10], [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]
 
         # Perform pose estimation on the frame
-        results = self.model(frame)
-        
+        results = self.pose_estimation_model(frame)
+
         for results in results[0].keypoints:
             for result in results:
                 kpts = result.xy
                 kpts = kpts.cpu().numpy()
                 kpts = kpts[0]
-            
+
                 nkpt, ndim = kpts.shape
 
                 # If there are no keypoints, continue
@@ -109,13 +112,16 @@ class FrameStreamer:
                                 conf = k[2]
                                 if conf < 0.5:
                                     continue
-                            cv2.circle(frame, (int(x_coord), int(y_coord)), 5, (255,255,255), -1, lineType=cv2.LINE_AA)
+                            cv2.circle(frame, (int(x_coord), int(y_coord)),
+                                       5, (255, 255, 255), -1, lineType=cv2.LINE_AA)
 
                         ndim = kpts.shape[-1]
                         # Loop through the skeleton
                         for i, sk in enumerate(skeleton):
-                            pos1 = (int(kpts[(sk[0] - 1), 0]), int(kpts[(sk[0] - 1), 1]))
-                            pos2 = (int(kpts[(sk[1] - 1), 0]), int(kpts[(sk[1] - 1), 1]))
+                            pos1 = (int(kpts[(sk[0] - 1), 0]),
+                                    int(kpts[(sk[0] - 1), 1]))
+                            pos2 = (int(kpts[(sk[1] - 1), 0]),
+                                    int(kpts[(sk[1] - 1), 1]))
                             if ndim == 3:
                                 conf1 = kpts[(sk[0] - 1), 2]
                                 conf2 = kpts[(sk[1] - 1), 2]
@@ -125,12 +131,14 @@ class FrameStreamer:
                                 continue
                             if pos2[0] % frame.shape[1] == 0 or pos2[1] % frame.shape[0] == 0 or pos2[0] < 0 or pos2[1] < 0:
                                 continue
-                            cv2.line(frame, pos1, pos2, (255,255,255), thickness=2, lineType=cv2.LINE_AA)
+                            cv2.line(frame, pos1, pos2, (255, 255, 255),
+                                     thickness=2, lineType=cv2.LINE_AA)
 
         # Add people count to the frame
-        cv2.putText(frame, f"People Count: {people_count}", (10, 30), self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, f"People Count: {people_count}", (10, 30),
+                    self.font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
         return frame
-    
+
     def depth_estimation(self, frame, transform):
         """
         Performs depth estimation on the frame.
@@ -142,14 +150,14 @@ class FrameStreamer:
         Returns:
             depth_map (ndarray): Frame with depth map.
         """
-        
+
         # Apply transformation to the frame
         input_data = transform(frame).to("mps")
 
         # Run model without gradient computation
         with torch.no_grad():
             # Get model prediction
-            prediction = self.model(input_data)
+            prediction = self.depth_estimation_model(input_data)
             # Move prediction to CPU
             prediction = prediction.to("cpu")
             # Interpolate prediction to match frame shape
@@ -164,7 +172,8 @@ class FrameStreamer:
         output = prediction.cpu().numpy()
 
         # Normalize output values between 0 and 1
-        depth_map = cv2.normalize(output, None, 0, 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        depth_map = cv2.normalize(
+            output, None, 0, 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         # Scale depth_map values to uint8 range (0-255)
         depth_map = (depth_map * 255).astype(np.uint8)
@@ -174,7 +183,6 @@ class FrameStreamer:
 
         # Return final depth_map
         return depth_map
-
 
     def release(self):
         """
@@ -200,6 +208,24 @@ class FrameStreamer:
             None
         """
         cv2.imshow('frame', frame)
+
+    @staticmethod
+    def show_frames_side_by_side(frame1, frame2):
+        """
+        Displays two frames side by side.
+
+        Args:
+            frame1 (ndarray): First frame to display.
+            frame2 (ndarray): Second frame to display.
+
+        Returns:
+            None
+        """
+        # Concatenate the frames along the second axis (i.e., side by side)
+        combined_frame = np.concatenate((frame1, frame2), axis=1)
+
+        # Display the combined frame
+        cv2.imshow('Combined Frame', combined_frame)
 
     @staticmethod
     def destroy_windows():

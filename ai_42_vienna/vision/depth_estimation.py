@@ -2,7 +2,8 @@ import torch
 import cv2
 from ai_42_vienna.vision.streamer import FrameStreamer
 
-#https://medium.com/artificialis/getting-started-with-depth-estimation-using-midas-and-python-d0119bfe1159
+# https://medium.com/artificialis/getting-started-with-depth-estimation-using-midas-and-python-d0119bfe1159
+
 
 def instantiate_model():
     """
@@ -16,8 +17,8 @@ def instantiate_model():
         transform: MiDaS transform
     """
 
-    model_types = ["DPT_Large", 
-                   "DPT_Hybrid", 
+    model_types = ["DPT_Large",
+                   "DPT_Hybrid",
                    "MiDaS_small"]
 
     model = model_types[2]
@@ -36,6 +37,7 @@ def instantiate_model():
 
     return midas, transform
 
+
 def main():
     """
     Main function for depth estimation
@@ -49,7 +51,8 @@ def main():
 
     midas, transform = instantiate_model()
 
-    streamer = FrameStreamer(source=0, model=midas)
+    streamer = FrameStreamer(source=0, object_detection_model=None,
+                             pose_estimation_model=None, depth_estimation_model=midas)
     while True:
         ret, frame = streamer.read()
         if not ret:
@@ -58,6 +61,7 @@ def main():
         streamer.show_frame(processed_frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+
 
 if __name__ == '__main__':
     main()

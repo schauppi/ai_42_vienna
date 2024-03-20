@@ -13,10 +13,10 @@ def instantiate_model():
     Returns:
         yolo_pose: YOLO model for pose estimation
     """
-
     yolo_pose = YOLO('ai_42_vienna/vision/models/yolov8n-pose.pt')
 
     return yolo_pose
+
 
 def main():
     """
@@ -31,7 +31,8 @@ def main():
 
     yolo_pose = instantiate_model()
 
-    streamer = FrameStreamer(source=0, model=yolo_pose)
+    streamer = FrameStreamer(source=0, object_detection_model=None,
+                             pose_estimation_model=yolo_pose, depth_estimation_model=None)
     while True:
         ret, frame = streamer.read()
         if not ret:
@@ -42,6 +43,7 @@ def main():
             break
     streamer.release()
     streamer.destroy_windows()
+
 
 if __name__ == '__main__':
     main()

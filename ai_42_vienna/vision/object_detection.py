@@ -18,7 +18,7 @@ def instantiate_model():
 
     return yolo
 
-    
+
 def main():
     """
     Main function for object detection 
@@ -32,7 +32,8 @@ def main():
 
     yolo = instantiate_model()
 
-    streamer = FrameStreamer(source=0, model=yolo)
+    streamer = FrameStreamer(source=0, object_detection_model=yolo,
+                             pose_estimation_model=None, depth_estimation_model=None)
     while True:
         ret, frame = streamer.read()
         if not ret:
@@ -43,6 +44,7 @@ def main():
             break
     streamer.release()
     streamer.destroy_windows()
+
 
 if __name__ == '__main__':
     main()
